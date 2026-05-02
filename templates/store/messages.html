@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}My Messages - {{ settings.site_name }}{% endblock %}
+
+{% block content %}
+<div class="bg-light py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-12 text-center">
+                <h1 class="display-5 fw-bold mb-3">My Messages</h1>
+                <p class="lead text-muted mb-0">Stay updated with notifications from the administration.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                    <h5 class="fw-bold mb-0">Inbox</h5>
+                </div>
+                <div class="card-body p-0 mt-3">
+                    {% if messages %}
+                        <div class="list-group list-group-flush border-top">
+                            {% for msg in messages %}
+                                <div class="list-group-item list-group-item-action p-4 border-bottom {{ 'bg-light' if not msg.is_read else '' }}"
+                                     onclick="toggleMessage({{ msg.id }})" style="cursor: pointer;">
+                                    <div class="d-flex w-100 justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0 fw-bold {{ 'text-dark' if not msg.is_read else 'text-muted' }}">
+                                            {% if not msg.is_read %}
+                                            <span class="badge bg-warning text-dark me-2" id="badge-{{ msg.id }}">New</span>
+                                            {% endif %}
+                                            <i class="fas fa-envelope-open-text me-2 text-primary"></i>
+                                            {{ msg.subject }}
+                                        </h6>
+                                        <small class="text-muted">{{ msg.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    </div>
+                                    <div class="message-body text-secondary mt-3 d-none" id="msg-body-{{ msg.id }}" style="white-space: pre-wrap;">{{ msg.body }}</div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-4x text-muted mb-3 opacity-50"></i>
+                            <h4 class="text-muted fw-semibold">No Messages Yet</h4>
+                            <p class="text-secondary mb-0">You have no messages or notifications at the moment.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleMessage(msgId) {
+    const bodyEl = document.getElementById('msg-body-' + msgId);
+    const isHidden = bodyEl.classList.contains('d-none');
+    
+    // Hide all other messages
+    document.querySelectorAll('.message-body').forEach(el => {
+        el.classList.add('d-none');
+    });
+
+    if (isHidden) {
+        bodyEl.classList.remove('d-none');
+        
+        // Mark as read via AJAX if there's a new badge
+        const badge = document.getElementById('badge-' + msgId);
+        if (badge) {
+            fetch('/messages/read/' + msgId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      badge.remove();
+                      // Also decrement nav badge if exists
+                      const navBadge = document.getElementById('msg-badge');
+                      if (navBadge) {
+                          let count = parseInt(navBadge.textContent);
+                          count--;
+                          if (count > 0) {
+                              navBadge.textContent = count;
+                          } else {
+                              navBadge.remove();
+                          }
+                      }
+                      // Remove bg-light from list item
+                      bodyEl.closest('.list-group-item').classList.remove('bg-light');
+                      bodyEl.closest('.list-group-item').querySelector('h6').classList.replace('text-dark', 'text-muted');
+                  }
+              });
+        }
+    }
+}
+</script>
+{% endblock %}

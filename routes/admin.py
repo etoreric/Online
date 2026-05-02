@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file, current_app
 from flask_login import login_required, current_user
-from models import db, User, Product, Category, Order, SiteSettings, AdminInvite, PasswordResetRequest
+from models import db, User, Product, Category, Order, SiteSettings, AdminInvite, PasswordResetRequest, Message
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 from functools import wraps
@@ -9,6 +9,7 @@ import os
 import uuid
 import io
 from fpdf import FPDF
+from flask_mail import Message as MailMessage
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -646,6 +647,15 @@ def password_resets():
     return render_template('admin/password_resets.html', reset_requests=reset_requests)
 
 
+@admin_bp.route('/clear-all-resets', methods=['POST'])
+@superuser_required
+def clear_all_resets():
+    db.session.query(PasswordResetRequest).delete()
+    db.session.commit()
+    flash('All requests have been deleted from the database.', 'success')
+    return redirect(url_for('admin.password_resets'))
+
+
 @admin_bp.route('/superuser/generate-invite', methods=['POST'])
 @superuser_required
 def generate_invite():
@@ -729,10 +739,38 @@ def superuser_reset_password(user_id):
         flash('Password must be at least 6 characters.', 'error')
     else:
         user.set_password(new_password)
-        db.session.commit()
-        flash(f'Password for admin {user.username} has been reset.', 'success')
+        
+        # Notify the user (In-app + Email)
+        send_reset_notification(user, new_password)
+        
+        flash(f'Password for admin {user.username} has been reset and notified. New password: {new_password}', 'success')
     return redirect(url_for('admin.admins'))
 
+
+def send_reset_notification(user, new_password):
+    # 1. Create in-app message
+    new_message = Message(
+        sender_id=current_user.id,
+        recipient_id=user.id,
+        subject="Your Password Has Been Reset",
+        body=f"Hello {user.username},\n\nYour password has been successfully reset. Your new temporary password is: {new_password}\n\nPlease log in and change it immediately."
+    )
+    db.session.add(new_message)
+    
+    # 2. Send Email
+    mail = current_app.extensions.get('mail')
+    if mail:
+        msg = MailMessage(
+            "Your StyleShop Password Has Been Reset",
+            recipients=[user.email]
+        )
+        msg.body = f"Hello {user.username},\n\nYour password for StyleShop has been reset by an administrator.\n\nNew Temporary Password: {new_password}\n\nPlease log in and change your password immediately."
+        try:
+            mail.send(msg)
+        except Exception as e:
+            current_app.logger.error(f"Email failure: {e}")
+            
+    db.session.commit()
 
 @admin_bp.route('/superuser/fulfill-reset/<int:req_id>', methods=['POST'])
 @superuser_required
@@ -748,22 +786,23 @@ def fulfill_reset_request(req_id):
     user = reset_req.user
     user.set_password(new_password)
 
-    # Mark the request as completed
-    reset_req.status = 'completed'
-    reset_req.resolved_at = datetime.utcnow()
+    # Delete the request once fulfilled to clear it from the list
+    db.session.delete(reset_req)
     db.session.commit()
 
-    # Send SMS via Twilio
+    # Ensure phone format for Twilio
     account_sid = os.getenv('TWILIO_ACCOUNT_SID')
     auth_token  = os.getenv('TWILIO_AUTH_TOKEN')
     twilio_number = os.getenv('TWILIO_PHONE_NUMBER')
 
-    # Ensure E.164 format
     target_phone = user.phone
     if target_phone and not target_phone.startswith('+'):
         target_phone = ('+233' + target_phone[1:]) if target_phone.startswith('0') else ('+233' + target_phone)
 
     is_configured = all([account_sid, auth_token, twilio_number]) and 'your_' not in account_sid
+
+    # Notify the user (In-app + Email)
+    send_reset_notification(user, new_password)
 
     if is_configured:
         try:
@@ -776,27 +815,18 @@ def fulfill_reset_request(req_id):
                 from_=twilio_number,
                 to=target_phone
             )
-            flash(f"Password reset and SMS sent to {user.username} ({user.phone}).", 'success')
+            flash(f"Password reset. Request cleared. Notifications sent to {user.username}.", 'success')
             current_app.logger.info(f"Password reset SMS sent to {user.phone} for request #{req_id}")
         except Exception as e:
             current_app.logger.error(f"Twilio SMS error on fulfill-reset for {user.phone}: {e}")
-            flash(f'Password reset for {user.username}, but SMS failed: {e}', 'warning')
+            flash(f'Password reset and cleared. (SMS failed: {e})', 'warning')
     else:
         # Twilio not configured — log without revealing the password
         current_app.logger.warning(f"Twilio not configured. Password reset for {user.phone} (req #{req_id}), SMS not sent.")
-        flash(f'Password reset for {user.username}. (SMS not sent — Twilio not configured.)', 'warning')
+        flash(f'Password reset successful. Request cleared. New password: {new_password}', 'success')
 
     return redirect(url_for('admin.password_resets'))
 
-
-@admin_bp.route('/superuser/delete-reset/<int:req_id>', methods=['POST'])
-@superuser_required
-def delete_reset_request(req_id):
-    reset_req = db.get_or_404(PasswordResetRequest, req_id)
-    db.session.delete(reset_req)
-    db.session.commit()
-    flash('Password reset request deleted successfully.', 'success')
-    return redirect(url_for('admin.password_resets'))
 
 
 @admin_bp.route('/database-management')

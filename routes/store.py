@@ -260,3 +260,51 @@ def delete_order(order_id):
 def cart_count():
     cart = get_or_create_cart()
     return jsonify({'count': cart.item_count})
+
+
+@store_bp.route('/messages')
+def messages():
+    if not current_user.is_authenticated:
+        flash('Please login to view your messages.', 'warning')
+        return redirect(url_for('auth.login'))
+    
+    user_messages = current_user.received_messages.all()
+    return render_template('store/messages.html', messages=user_messages)
+
+
+@store_bp.route('/messages/read/<int:msg_id>', methods=['POST'])
+def mark_message_read(msg_id):
+    if not current_user.is_authenticated:
+        return jsonify({'success': False}), 401
+    
+    from models import Message
+    msg = db.get_or_404(Message, msg_id)
+    if msg.recipient_id == current_user.id:
+        msg.is_read = True
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 403
+
+
+@store_bp.route('/api/public-messages')
+def get_public_messages():
+    email = request.args.get('email', '').strip()
+    if not email:
+        return jsonify({'success': False, 'messages': []})
+    
+    from models import User, Message
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'success': False, 'messages': []})
+    
+    # Return last 3 messages for this user (limited for demo purposes)
+    msgs = Message.query.filter_by(recipient_id=user.id).order_by(Message.created_at.desc()).limit(3).all()
+    
+    return jsonify({
+        'success': True,
+        'messages': [{
+            'subject': m.subject,
+            'body': m.body,
+            'date': m.created_at.strftime('%Y-%m-%d %H:%M')
+        } for m in msgs]
+    })

@@ -93,6 +93,11 @@ def create_app():
     def settings_context():
         return {'settings': SiteSettings.get_settings()}
 
+    @app.template_filter('from_json')
+    def from_json_filter(value):
+        import json
+        return json.loads(value)
+
     return app
 
 

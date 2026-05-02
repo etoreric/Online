@@ -21,6 +21,27 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
             login_user(user)
+            session.pop('has_requested_reset', None)
+            
+            # Find any 'Password Has Been Reset' messages for this user
+            from models import Message
+            reset_msg = Message.query.filter(
+                Message.recipient_id == user.id,
+                Message.subject.like('%Password Has Been Reset%')
+            ).order_by(Message.created_at.desc()).first()
+            
+            if reset_msg:
+                import json
+                popup_data = {
+                    'title': reset_msg.subject,
+                    'body': reset_msg.body
+                }
+                flash(json.dumps(popup_data), 'login_popup')
+                
+                # Delete it now that we've captured it for the popup
+                db.session.delete(reset_msg)
+                db.session.commit()
+            
             flash('Welcome back!', 'success')
             next_page = request.args.get('next')
             if next_page:
@@ -115,7 +136,8 @@ def request_password_reset():
         req = PasswordResetRequest(user_id=user.id, message=message)
         db.session.add(req)
         db.session.commit()
-        flash('Your request has been submitted. The superuser will reset your password and notify you via SMS.', 'success')
+        session['has_requested_reset'] = True
+        flash('Your request has been submitted. The superuser will reset your password and notify you via your in-app Messages.', 'success')
         return redirect(url_for('auth.login'))
 
     return render_template('auth/request_password_reset.html')

@@ -136,6 +136,40 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% with messages = get_flashed_messages(category_filter=['login_popup']) %}
+        {% if messages %}
+            {% set popup_data = messages[0]|from_json if messages[0] is string else messages[0] %}
+            <!-- Login Notification Modal -->
+            <div class="modal fade" id="loginNotificationModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-primary text-white border-0">
+                            <h5 class="modal-title fw-bold">
+                                <i class="fas fa-bell me-2"></i>{{ popup_data.title }}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4 text-center">
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:60px;height:60px;">
+                                <i class="fas fa-key text-primary fa-lg"></i>
+                            </div>
+                            <div class="mt-2" style="white-space: pre-wrap;">{{ popup_data.body }}</div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0 justify-content-center pb-4">
+                            <button type="button" class="btn btn-primary px-5 rounded-pill" data-bs-dismiss="modal">Got it!</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    var myModal = new bootstrap.Modal(document.getElementById('loginNotificationModal'));
+                    myModal.show();
+                });
+            </script>
+        {% endif %}
+    {% endwith %}
+
     {% block scripts %}{% endblock %}
 </body>
 </html>
