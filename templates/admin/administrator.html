@@ -1,0 +1,274 @@
+{% extends "admin/base.html" %}
+{% block title %}Administrators - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4" id="admins-header">
+    <h1 class="h3 fw-bold mb-0">Platform Administrators</h1>
+    <div class="d-flex gap-2 mt-2 mt-md-0">
+        <span class="badge bg-danger fs-6">Super Users: {{ superusers|length }}</span>
+        <span class="badge bg-dark fs-6">Administrators: {{ admins|length }}</span>
+    </div>
+</div>
+
+<!-- Super Users Section -->
+<div class="card border-0 shadow-sm mb-5" id="superusers-section">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-bold text-danger"><i class="fas fa-user-shield me-2"></i>Super Users</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="px-4">User Info</th>
+                    <th>Contact</th>
+                    <th>Joined Date</th>
+                    <th class="text-end px-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in superusers %}
+                <tr id="superuser-row-{{ user.id }}">
+                    <td class="px-4">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                <i class="fas fa-crown small"></i>
+                            </div>
+                            <div>
+                                <span class="fw-semibold">{{ user.username }}</span><br>
+                                <small class="text-muted">{{ user.email }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td><small>{{ user.phone or 'N/A' }}</small></td>
+                    <td><small class="text-muted">{{ user.created_at.strftime('%Y-%m-%d') }}</small></td>
+                    <td class="text-end px-4">
+                        {% if user.id != current_user.id %}
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-sm btn-light text-primary" 
+                                    title="Reset Password"
+                                    onclick="resetPassword('{{ user.id }}', '{{ user.username }}')">
+                                <i class="fas fa-key"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-light text-danger" 
+                                    title="Delete Admin"
+                                    onclick="confirmDelete('{{ user.id }}', '{{ user.username }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        {% else %}
+                        <span class="badge bg-light text-muted">You</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Regular Admins Section -->
+<div class="card border-0 shadow-sm" id="regular-admins-section">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-user-tie me-2"></i>Administrator</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="px-4">User Info</th>
+                    <th>Contact</th>
+                    <th>Portal Link</th>
+                    <th>Joined Date</th>
+                    <th class="text-end px-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if admins %}
+                    {% for user in admins %}
+                    <tr id="admin-row-{{ user.id }}">
+                        <td class="px-4">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                    <i class="fas fa-user small"></i>
+                                </div>
+                                <div>
+                                    <span class="fw-semibold">{{ user.username }}</span><br>
+                                    <small class="text-muted">{{ user.email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><small>{{ user.phone or 'N/A' }}</small></td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{{ url_for('store.portal', admin_id=user.id) }}" target="_blank" class="text-decoration-none small">
+                                    <i class="fas fa-external-link-alt me-1"></i> View Portal
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary copy-portal-btn border-0"
+                                        title="Copy portal link"
+                                        data-url="{{ url_for('store.portal', admin_id=user.id, _external=True) }}"
+                                        onclick="copyPortalLink(this)">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td><small class="text-muted">{{ user.created_at.strftime('%Y-%m-%d') }}</small></td>
+                        <td class="text-end px-4">
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-sm btn-light text-primary" 
+                                        title="Reset Password"
+                                        onclick="resetPassword('{{ user.id }}', '{{ user.username }}')">
+                                    <i class="fas fa-key"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-light text-danger" 
+                                        title="Delete Admin"
+                                        onclick="confirmDelete('{{ user.id }}', '{{ user.username }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No administrators found.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4 text-center">
+                <div class="mb-3 text-danger">
+                    <i class="fas fa-exclamation-triangle fa-3x"></i>
+                </div>
+                <p class="mb-0">Are you sure you want to delete administrator <strong id="deleteUserName"></strong>?</p>
+                <p class="text-muted small">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 pb-4 justify-content-center">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST">
+                    <button type="submit" class="btn btn-danger px-4 fw-semibold">Delete Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form id="resetPasswordForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="resetPasswordModalLabel">Reset Password for <span id="resetUserName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="modal_new_password" class="form-label fw-semibold mb-0">New Password</label>
+                            <button type="button" class="btn btn-link btn-sm text-decoration-none p-0"
+                                    data-target="modal_new_password"
+                                    onclick="suggestPassword(this)">
+                                <i class="fas fa-magic me-1"></i> Suggest Strong Password
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="modal_new_password" name="new_password" required minlength="6">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('modal_new_password', this)" title="Show/hide">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Password must be at least 6 characters.</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top-0">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold">Save New Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyPortalLink(btn) {
+    const url = btn.getAttribute('data-url');
+    navigator.clipboard.writeText(url).then(() => {
+        const icon = btn.querySelector('i');
+        icon.className = 'fas fa-check text-success';
+        btn.classList.replace('btn-outline-secondary', 'btn-outline-success');
+        setTimeout(() => {
+            icon.className = 'fas fa-copy';
+            btn.classList.replace('btn-outline-success', 'btn-outline-secondary');
+        }, 2000);
+    });
+}
+
+function confirmDelete(userId, userName) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    document.getElementById('deleteUserName').textContent = userName;
+    document.getElementById('deleteForm').action = "/admin/superuser/delete-admin/" + userId;
+    modal.show();
+}
+
+function resetPassword(userId, userName) {
+    const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+    document.getElementById('resetUserName').textContent = userName;
+    document.getElementById('resetPasswordForm').action = "/admin/superuser/reset-password/" + userId;
+    modal.show();
+}
+
+function generateStrongPassword() {
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lower = 'abcdefghijklmnopqrstuvwxyz';
+    const digits = '0123456789';
+    const special = '!@#$%^&*()-_=+';
+    const all = upper + lower + digits + special;
+    let pw = [
+        upper[Math.floor(Math.random() * upper.length)],
+        lower[Math.floor(Math.random() * lower.length)],
+        digits[Math.floor(Math.random() * digits.length)],
+        special[Math.floor(Math.random() * special.length)]
+    ];
+    for (let i = pw.length; i < 14; i++) {
+        pw.push(all[Math.floor(Math.random() * all.length)]);
+    }
+    return pw.sort(() => Math.random() - 0.5).join('');
+}
+
+function suggestPassword(btn) {
+    const pw = generateStrongPassword();
+    const targetId = btn.getAttribute('data-target');
+    const targetInput = document.getElementById(targetId);
+    targetInput.type = 'text';
+    targetInput.value = pw;
+    navigator.clipboard.writeText(pw).catch(() => {});
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check me-1 text-success"></i> Copied to clipboard!';
+    setTimeout(() => { btn.innerHTML = orig; }, 2500);
+}
+
+function toggleVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+</script>
+{% endblock %}

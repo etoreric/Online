@@ -1,0 +1,167 @@
+{% extends "admin/base.html" %}
+{% block title %}Super User Portal - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-bold mb-0">Super User Portal</h1>
+</div>
+
+<div class="row g-4">
+    <!-- Generate Link Section -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0 fw-bold">Generate Unique Portal Link</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">Generate a unique registration link to invite a new administrator. The link will expire in 7 days and can only be used once.</p>
+                
+                <form action="{{ url_for('admin.generate_invite') }}" method="POST">
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                        <i class="fas fa-link me-2"></i> Generate New Portal Link
+                    </button>
+                </form>
+
+                {% if invites %}
+                <div class="mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0 small text-uppercase text-muted">Active Pending Links</h6>
+                        <form action="{{ url_for('admin.clear_all_invites') }}" method="POST" onsubmit="return confirm('Clear all pending links?');">
+                            <button type="submit" class="btn btn-link btn-sm text-danger text-decoration-none p-0 small">Clear All</button>
+                        </form>
+                    </div>
+                    <div class="list-group list-group-flush border rounded">
+                        {% for invite in invites %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center small">
+                            <div class="text-truncate me-3">
+                                <code class="text-primary">{{ invite.token[:12] }}...</code>
+                                <br>
+                                <small class="text-muted">Expires: {{ invite.expires_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('{{ url_for('auth.admin_register', token=invite.token, _external=True) }}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <form action="{{ url_for('admin.delete_invite', invite_id=invite.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Admin Section -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0 fw-bold">Create Admin Directly</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('admin.create_admin') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Username</label>
+                        <input type="text" name="username" class="form-control" placeholder="admin_username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="admin@example.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Phone Number (WhatsApp)</label>
+                        <input type="tel" name="phone" class="form-control" placeholder="+233..." required>
+                    </div>
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-semibold mb-0">Temporary Password</label>
+                            <button type="button" class="btn btn-link btn-sm text-decoration-none p-0"
+                                    data-target="create_admin_password"
+                                    onclick="suggestPassword(this)">
+                                <i class="fas fa-magic me-1"></i> Suggest Strong Password
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="create_admin_password" name="password" class="form-control" placeholder="••••••••" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('create_admin_password', this)" title="Show/hide">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-dark w-100 py-2 fw-semibold">
+                        <i class="fas fa-user-plus me-2"></i> Create Admin Account
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {# Password Reset Requests have been moved to a dedicated admin page. #}
+
+</div>
+
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Invite link copied to clipboard!');
+    });
+}
+
+
+
+function generateStrongPassword() {
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lower = 'abcdefghijklmnopqrstuvwxyz';
+    const digits = '0123456789';
+    const special = '!@#$%^&*()-_=+';
+    const all = upper + lower + digits + special;
+    let pw = [
+        upper[Math.floor(Math.random() * upper.length)],
+        lower[Math.floor(Math.random() * lower.length)],
+        digits[Math.floor(Math.random() * digits.length)],
+        special[Math.floor(Math.random() * special.length)]
+    ];
+    for (let i = pw.length; i < 14; i++) {
+        pw.push(all[Math.floor(Math.random() * all.length)]);
+    }
+    return pw.sort(() => Math.random() - 0.5).join('');
+}
+
+function suggestPassword(btn) {
+    const pw = generateStrongPassword();
+    const targetId = btn.getAttribute('data-target');
+    const confirmId = btn.getAttribute('data-confirm');
+    const targetInput = document.getElementById(targetId);
+    const confirmInput = confirmId ? document.getElementById(confirmId) : null;
+    targetInput.type = 'text';
+    targetInput.value = pw;
+    if (confirmInput) {
+        confirmInput.type = 'text';
+        confirmInput.value = pw;
+    }
+    navigator.clipboard.writeText(pw).catch(() => {});
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check me-1 text-success"></i> Copied to clipboard!';
+    setTimeout(() => { btn.innerHTML = orig; }, 2500);
+}
+
+
+
+function toggleVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+</script>
+{% endblock %}

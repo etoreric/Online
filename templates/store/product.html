@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} - StyleShop{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" id="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('store.home') }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('store.shop') }}">Shop</a></li>
+            {% if product.category %}
+            <li class="breadcrumb-item"><a href="{{ url_for('store.shop', category=product.category.slug) }}">{{ product.category.name }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active">{{ product.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4 mb-5" id="product-detail">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm overflow-hidden">
+                {% if product.image %}
+                <img src="{{ url_for('static', filename='uploads/' + product.image) }}" alt="{{ product.name }}" class="img-fluid w-100" style="max-height:500px;object-fit:cover;" id="product-main-image">
+                {% else %}
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height:400px;"><i class="fas fa-image fa-4x text-muted"></i></div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <span class="badge bg-primary bg-opacity-10 text-primary mb-2">{{ product.category.name if product.category else 'Uncategorized' }}</span>
+            <h1 class="h2 fw-bold" id="product-name">{{ product.name }}</h1>
+            <div class="h3 text-primary fw-bold mb-3" id="product-price">GH₵{{ "%.2f"|format(product.price) }}</div>
+            <h6 class="fw-semibold">Description</h6>
+            <p class="text-muted">{{ product.description or 'No description available.' }}</p>
+            <div class="mb-4">
+                {% if product.stock > 0 %}
+                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2"><i class="fas fa-check-circle me-1"></i> In Stock ({{ product.stock }})</span>
+                {% else %}
+                <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2"><i class="fas fa-times-circle me-1"></i> Out of Stock</span>
+                {% endif %}
+            </div>
+            {% if product.stock > 0 %}
+            <form action="{{ url_for('store.add_to_cart', product_id=product.id) }}" method="POST" id="add-to-cart-detail">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <label for="quantity" class="fw-semibold mb-0">Qty:</label>
+                    <div class="input-group" style="width:140px;">
+                        <button type="button" class="btn btn-outline-secondary" onclick="changeQty(-1)">−</button>
+                        <input type="number" class="form-control text-center" name="quantity" id="quantity" value="1" min="1" max="{{ product.stock }}">
+                        <button type="button" class="btn btn-outline-secondary" onclick="changeQty(1)">+</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold" id="add-to-cart-btn"><i class="fas fa-cart-plus me-2"></i>Add to Cart</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if related %}
+    <h2 class="h4 fw-bold mb-4">You May Also Like</h2>
+    <div class="row g-4">
+        {% for item in related %}
+        <div class="col-lg-3 col-md-4 col-sm-6" id="related-{{ item.id }}">
+            <div class="card border-0 shadow-sm h-100 product-card">
+                <a href="{{ url_for('store.product_detail', product_id=item.id) }}">
+                    <div style="height:200px;">
+                        {% if item.image %}
+                        <img src="{{ url_for('static', filename='uploads/' + item.image) }}" alt="{{ item.name }}" class="card-img-top object-fit-cover w-100 h-100">
+                        {% else %}
+                        <div class="bg-light d-flex align-items-center justify-content-center w-100 h-100"><i class="fas fa-image fa-3x text-muted"></i></div>
+                        {% endif %}
+                    </div>
+                </a>
+                <div class="card-body d-flex flex-column">
+                    <small class="text-muted">{{ item.category.name if item.category else '' }}</small>
+                    <h6 class="fw-bold mt-1"><a href="{{ url_for('store.product_detail', product_id=item.id) }}" class="text-dark text-decoration-none">{{ item.name }}</a></h6>
+                    <div class="d-flex justify-content-between align-items-center mt-auto pt-2">
+                        <span class="fw-bold text-primary">GH₵{{ "%.2f"|format(item.price) }}</span>
+                        <form action="{{ url_for('store.add_to_cart', product_id=item.id) }}" method="POST">
+                            <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-cart-plus"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% block scripts %}
+<script>
+function changeQty(delta) {
+    const input = document.getElementById('quantity');
+    let val = parseInt(input.value) + delta;
+    if (val < 1) val = 1;
+    if (val > parseInt(input.max)) val = parseInt(input.max);
+    input.value = val;
+}
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Checkout - StyleShop{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title" id="checkout-title">Checkout</h1>
+
+    <div class="checkout-layout" id="checkout-layout">
+        <!-- Checkout Form -->
+        <div class="checkout-form-section">
+            <form action="{{ url_for('store.place_order') }}" method="POST" id="checkout-form">
+                <div class="form-section">
+                    <h3><i class="fas fa-user"></i> Customer Information</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="customer_name">Full Name *</label>
+                            <input type="text" id="customer_name" name="customer_name" required
+                                   value="{{ current_user.username if current_user.is_authenticated else '' }}"
+                                   placeholder="Enter your full name">
+                        </div>
+                        <div class="form-group">
+                            <label for="customer_email">Email Address *</label>
+                            <input type="email" id="customer_email" name="customer_email" required
+                                   value="{{ current_user.email if current_user.is_authenticated else '' }}"
+                                   placeholder="you@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="customer_phone">Phone Number *</label>
+                            <input type="tel" id="customer_phone" name="customer_phone" required
+                                   placeholder="e.g. 024XXXXXXX">
+                        </div>
+                        <div class="form-group form-full">
+                            <label for="address">Delivery Address</label>
+                            <textarea id="address" name="address" rows="3" placeholder="Enter your delivery address"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-full" id="place-order-btn">
+                    <i class="fas fa-check-circle"></i> Place Order (GH₵{{ "%.2f"|format(cart.total) }})
+                </button>
+            </form>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="checkout-summary" id="checkout-summary">
+            <h3>Order Summary</h3>
+            <div class="summary-items">
+                {% for item in cart.items %}
+                <div class="summary-item">
+                    <div class="summary-item-image">
+                        {% if item.product.image %}
+                            <img src="{{ url_for('static', filename='uploads/' + item.product.image) }}" alt="{{ item.product.name }}">
+                        {% else %}
+                            <div class="summary-item-placeholder"><i class="fas fa-image"></i></div>
+                        {% endif %}
+                        <span class="summary-item-qty">{{ item.quantity }}</span>
+                    </div>
+                    <div class="summary-item-info">
+                        <span class="summary-item-name">{{ item.product.name }}</span>
+                        <span class="summary-item-price">GH₵{{ "%.2f"|format(item.subtotal) }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <hr>
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span>GH₵{{ "%.2f"|format(cart.total) }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Shipping</span>
+                <span class="free-shipping">Free</span>
+            </div>
+            <hr>
+            <div class="summary-row summary-total">
+                <span>Total</span>
+                <span>GH₵{{ "%.2f"|format(cart.total) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

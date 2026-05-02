@@ -1,0 +1,33 @@
+/* Admin Sidebar Styles */
+#admin-layout {
+    min-height: 100vh;
+}
+
+.admin-sidebar {
+    width: 250px;
+    z-index: 1000;
+    transition: all 0.3s;
+}
+
+.sidebar-link {
+    transition: all 0.2s;
+}
+
+.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-link.active {
+    font-weight: 600;
+}
+
+@media (max-width: 991.98px) {
+    .admin-sidebar {
+        position: fixed;
+        left: -250px;
+        height: 100%;
+    }
+    .admin-sidebar.active {
+        left: 0;
+    }
+}

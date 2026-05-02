@@ -1,0 +1,80 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Edit' if product else 'Add' }} Product - Admin Panel{% endblock %}
+
+{% block content %}
+<h1 class="h3 fw-bold mb-4" id="product-form-title">{{ 'Edit Product' if product else 'Add New Product' }}</h1>
+
+<div class="card border-0 shadow-sm" id="product-form-card">
+    <div class="card-body p-4">
+        <form method="POST" enctype="multipart/form-data" id="product-form"
+              action="{{ url_for('admin.edit_product', product_id=product.id) if product else url_for('admin.add_product') }}">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label fw-semibold">Product Name *</label>
+                    <input type="text" class="form-control" id="name" name="name" required
+                           value="{{ product.name if product else '' }}" placeholder="Enter product name">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="price" class="form-label fw-semibold">Price (GH₵) *</label>
+                    <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required
+                           value="{{ product.price if product else '' }}" placeholder="0.00">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="category_id" class="form-label fw-semibold">Category</label>
+                    <select class="form-select" id="category_id" name="category_id">
+                        <option value="0">Select Category</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if product and product.category_id == cat.id %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="stock" class="form-label fw-semibold">Stock Quantity</label>
+                    <input type="number" class="form-control" id="stock" name="stock" min="0"
+                           value="{{ product.stock if product else 0 }}" placeholder="0">
+                </div>
+
+                <div class="col-12">
+                    <label for="description" class="form-label fw-semibold">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="4"
+                              placeholder="Describe the product...">{{ product.description if product else '' }}</textarea>
+                </div>
+
+                <div class="col-12">
+                    <label for="image" class="form-label fw-semibold">Product Image</label>
+                    {% if product and product.image %}
+                    <div class="mb-2 d-flex align-items-center gap-3">
+                        <img src="{{ url_for('static', filename='uploads/' + product.image) }}" alt="Current image"
+                             class="rounded" style="width:80px;height:80px;object-fit:cover;">
+                        <small class="text-muted">Current image — upload new to replace</small>
+                    </div>
+                    {% endif %}
+                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                    <div class="form-text">PNG, JPG, GIF up to 16MB</div>
+                </div>
+
+                <div class="col-12">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="featured" id="featured"
+                               {% if product and product.featured %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="featured">Featured Product</label>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4">
+            <div class="d-flex gap-2 justify-content-end">
+                <a href="{{ url_for('admin.products') }}" class="btn btn-outline-secondary" id="cancel-btn">Cancel</a>
+                <button type="submit" class="btn btn-primary" id="save-product-btn">
+                    <i class="fas fa-save me-1"></i> {{ 'Update Product' if product else 'Add Product' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

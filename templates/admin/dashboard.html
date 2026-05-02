@@ -1,0 +1,239 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-bold mb-0" id="dashboard-title">Dashboard</h1>
+    <div class="d-flex gap-2 align-items-center">
+        {% if not current_user.is_superuser %}
+        <a href="{{ url_for('admin.export_weekly_summary') }}" class="btn btn-outline-danger btn-sm fw-semibold">
+            <i class="fas fa-file-pdf me-1"></i> Weekly Summary
+        </a>
+        {% endif %}
+        <a href="{{ url_for('store.portal', admin_id=current_user.id) }}" target="_blank" class="btn btn-outline-primary btn-sm fw-semibold">
+            <i class="fas fa-external-link-alt me-1"></i> My Public Portal
+        </a>
+        <button type="button"
+                id="copy-portal-btn"
+                class="btn btn-outline-secondary btn-sm"
+                title="Copy portal link"
+                data-url="{{ url_for('store.portal', admin_id=current_user.id, _external=True) }}"
+                onclick="copyDashboardPortalLink(this)">
+            <i class="fas fa-copy me-1"></i> Copy Link
+        </button>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4" id="stats-grid">
+    {% if current_user.is_superuser %}
+    <div class="col-xl-4 col-md-6">
+        <a href="{{ url_for('admin.products') }}" class="text-decoration-none text-dark d-block h-100">
+            <div class="card border-0 shadow-sm h-100" id="stat-products-su" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-3 bg-warning bg-opacity-10 text-warning p-3">
+                        <i class="fas fa-box-open fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Total Products</small>
+                        <h4 class="mb-0 fw-bold text-dark">{{ total_products }}</h4>
+                        <small class="text-success"><i class="fas fa-arrow-up"></i> +{{ total_products }}</small>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <a href="{{ url_for('admin.customers') }}" class="text-decoration-none text-dark d-block h-100">
+            <div class="card border-0 shadow-sm h-100" id="stat-customers-su" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-3 bg-info bg-opacity-10 text-info p-3">
+                        <i class="fas fa-users fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Customers</small>
+                        <h4 class="mb-0 fw-bold text-dark">{{ total_customers }}</h4>
+                        <small class="text-success"><i class="fas fa-arrow-up"></i> +{{ total_customers }}</small>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-xl-4 col-md-12">
+        <a href="{{ url_for('admin.admins') }}" class="text-decoration-none text-dark d-block h-100">
+            <div class="card border-0 shadow-sm h-100" id="stat-administrator-su" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-3">
+                        <i class="fas fa-user-shield fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Administrator</small>
+                        <h4 class="mb-0 fw-bold text-dark">{{ total_admins }}</h4>
+                        <small class="text-success"><i class="fas fa-arrow-up"></i> +{{ total_admins }}</small>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% else %}
+    <div class="col-xl-3 col-md-6">
+        <a href="{{ url_for('admin.revenue') }}" class="text-decoration-none text-dark d-block h-100">
+            <div class="card border-0 shadow-sm h-100" id="stat-revenue" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-3 bg-success bg-opacity-10 text-success p-3">
+                        <i class="fas fa-dollar-sign fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Total Revenue</small>
+                        <h4 class="mb-0 fw-bold">GH₵{{ "{:,.2f}".format(total_revenue) }}</h4>
+                        <small class="text-success"><i class="fas fa-arrow-up"></i> +12.5%</small>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100" id="stat-orders">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-3">
+                    <i class="fas fa-clipboard-check fa-lg"></i>
+                </div>
+                <div>
+                    <small class="text-muted">Total Orders</small>
+                    <h4 class="mb-0 fw-bold">{{ total_orders }}</h4>
+                    <small class="text-success"><i class="fas fa-arrow-up"></i> +8.2%</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <a href="{{ url_for('admin.products') }}" class="text-decoration-none text-dark d-block h-100">
+            <div class="card border-0 shadow-sm h-100" id="stat-products" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-3 bg-warning bg-opacity-10 text-warning p-3">
+                        <i class="fas fa-box-open fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Products</small>
+                        <h4 class="mb-0 fw-bold text-dark">{{ total_products }}</h4>
+                        <small class="text-success"><i class="fas fa-arrow-up"></i> +{{ total_products }}</small>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <a href="{{ url_for('admin.customers') }}" class="text-decoration-none text-dark d-block h-100">
+            <div class="card border-0 shadow-sm h-100" id="stat-customers" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-3 bg-info bg-opacity-10 text-info p-3">
+                        <i class="fas fa-users fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Customers</small>
+                        <h4 class="mb-0 fw-bold text-dark">{{ total_customers }}</h4>
+                        <small class="text-success"><i class="fas fa-arrow-up"></i> +{{ total_customers }}</small>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% if not current_user.is_superuser %}
+<!-- Recent Orders & Top Products -->
+<div class="row g-4" id="dashboard-grid">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm" id="recent-orders-card">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="card-title mb-0 fw-semibold">Recent Orders</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_orders %}
+                <div class="list-group list-group-flush">
+                    {% for order in recent_orders %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
+                        <div>
+                            <span class="fw-semibold text-primary">{{ order.order_number }}</span>
+                            <br>
+                            <small class="text-muted">{{ order.customer_name }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="fw-bold">GH₵{{ "%.2f"|format(order.total) }}</span>
+                            <br>
+                            <span class="badge rounded-pill
+                                {% if order.status == 'Pending' %}bg-warning text-dark
+                                {% elif order.status == 'Processing' %}bg-info
+                                {% elif order.status == 'Shipped' %}bg-primary
+                                {% elif order.status == 'Delivered' %}bg-success
+                                {% elif order.status == 'Cancelled' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ order.status }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">No orders yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm" id="top-products-card">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="card-title mb-0 fw-semibold">Top Products</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if top_products %}
+                <div class="list-group list-group-flush">
+                    {% for product in top_products %}
+                    <div class="list-group-item d-flex align-items-center gap-3 py-3 px-4">
+                        <div class="flex-shrink-0" style="width:45px;height:45px;">
+                            {% if product.image %}
+                                <img src="{{ url_for('static', filename='uploads/' + product.image) }}" alt="{{ product.name }}"
+                                     class="rounded-2 object-fit-cover w-100 h-100">
+                            {% else %}
+                                <div class="bg-light rounded-2 d-flex align-items-center justify-content-center w-100 h-100">
+                                    <i class="fas fa-image text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <span class="fw-semibold d-block text-truncate">{{ product.name }}</span>
+                            <small class="text-muted">{{ product.category.name if product.category else 'Uncategorized' }}</small>
+                        </div>
+                        <span class="fw-bold text-nowrap">GH₵{{ "%.2f"|format(product.price) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">No products yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyDashboardPortalLink(btn) {
+    const url = btn.getAttribute('data-url');
+    navigator.clipboard.writeText(url).then(() => {
+        const icon = btn.querySelector('i');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+        btn.classList.replace('btn-outline-secondary', 'btn-outline-success');
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.classList.replace('btn-outline-success', 'btn-outline-secondary');
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "admin/base.html" %}
+{% block title %}My Profile - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-bold mb-0">My Profile</h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0 fw-bold">Update Email Address</h5>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('admin.profile') }}" method="POST">
+                    <input type="hidden" name="action" value="change_email">
+                    
+                    <div class="mb-4">
+                        <label for="new_email" class="form-label fw-semibold">Email Address</label>
+                        <input type="email" class="form-control" id="new_email" name="new_email" value="{{ current_user.email }}" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="fas fa-envelope me-2"></i> Update Email
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0 fw-bold">Change Password</h5>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('admin.profile') }}" method="POST">
+                    <input type="hidden" name="action" value="change_password">
+                    
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label fw-semibold">Current Password</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="new_password" class="form-label fw-semibold mb-0">New Password</label>
+                            <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 suggest-pw-btn"
+                                    data-target="new_password" data-confirm="confirm_password"
+                                    onclick="suggestPassword(this)">
+                                <i class="fas fa-magic me-1"></i> Suggest Strong Password
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="new_password" name="new_password" required minlength="6">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('new_password', this)" title="Show/hide">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Must be at least 6 characters.</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="confirm_password" class="form-label fw-semibold">Confirm New Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('confirm_password', this)" title="Show/hide">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="fas fa-key me-2"></i> Update Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function suggestPassword(btn) {
+    const pw = generateStrongPassword();
+    const targetId = btn.getAttribute('data-target');
+    const confirmId = btn.getAttribute('data-confirm');
+    const targetInput = document.getElementById(targetId);
+    const confirmInput = confirmId ? document.getElementById(confirmId) : null;
+
+    targetInput.type = 'text';
+    targetInput.value = pw;
+    if (confirmInput) {
+        confirmInput.type = 'text';
+        confirmInput.value = pw;
+    }
+
+    // Show a dismissible toast-style hint
+    showCopiedHint(btn, pw);
+}
+
+function generateStrongPassword() {
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lower = 'abcdefghijklmnopqrstuvwxyz';
+    const digits = '0123456789';
+    const special = '!@#$%^&*()-_=+';
+    const all = upper + lower + digits + special;
+    let pw = [
+        upper[Math.floor(Math.random() * upper.length)],
+        lower[Math.floor(Math.random() * lower.length)],
+        digits[Math.floor(Math.random() * digits.length)],
+        special[Math.floor(Math.random() * special.length)]
+    ];
+    for (let i = pw.length; i < 14; i++) {
+        pw.push(all[Math.floor(Math.random() * all.length)]);
+    }
+    return pw.sort(() => Math.random() - 0.5).join('');
+}
+
+function showCopiedHint(btn, pw) {
+    navigator.clipboard.writeText(pw).catch(() => {});
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check me-1 text-success"></i> Copied to clipboard!';
+    setTimeout(() => { btn.innerHTML = orig; }, 2500);
+}
+
+function toggleVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+</script>
+{% endblock %}

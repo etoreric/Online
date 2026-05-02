@@ -1,0 +1,147 @@
+{% extends "admin/base.html" %}
+{% block title %}Site Settings - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-bold mb-0">Site Settings</h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form action="{{ url_for('admin.settings') }}" method="POST" enctype="multipart/form-data">
+                    <h5 class="fw-bold mb-4 border-bottom pb-2">General Settings</h5>
+                    
+                    <div class="mb-3">
+                        <label for="site_name" class="form-label fw-semibold">Site Name (Nav & Footer)</label>
+                        <input type="text" class="form-control" id="site_name" name="site_name" value="{{ settings.site_name }}" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="footer_about" class="form-label fw-semibold">Footer About Text</label>
+                        <textarea class="form-control" id="footer_about" name="footer_about" rows="3" required>{{ settings.footer_about }}</textarea>
+                    </div>
+
+                    <h5 class="fw-bold mb-4 border-bottom pb-2 mt-4">Hero Section</h5>
+                    
+                    <div class="mb-3">
+                        <label for="hero_title" class="form-label fw-semibold">Hero Title</label>
+                        <input type="text" class="form-control" id="hero_title" name="hero_title" value="{{ settings.hero_title }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="hero_subtitle" class="form-label fw-semibold">Hero Subtitle</label>
+                        <textarea class="form-control" id="hero_subtitle" name="hero_subtitle" rows="3" required>{{ settings.hero_subtitle }}</textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="hero_bg_image" class="form-label fw-semibold">Hero Background Image</label>
+                        <div class="mb-2">
+                            {% if settings.hero_bg_image %}
+                                <div class="position-relative d-inline-block">
+                                    <img src="{{ url_for('static', filename='uploads/' + settings.hero_bg_image) }}" alt="Hero Background" class="img-thumbnail" style="max-height: 200px;">
+                                    <div class="mt-1 small text-muted">Current image: {{ settings.hero_bg_image }}</div>
+                                </div>
+                            {% else %}
+                                <div class="p-4 bg-light text-center border rounded">
+                                    <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                                    <div class="text-muted">No background image set (using default)</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <input type="file" class="form-control" id="hero_bg_image" name="hero_bg_image" accept="image/*">
+                        <div class="form-text">Recommended size: 1920x1080px. Supported formats: JPG, PNG, WebP.</div>
+                    </div>
+                    
+                    <h5 class="fw-bold mb-4 border-bottom pb-2 mt-4">Social Media Links</h5>
+
+                    <div class="mb-3">
+                        <label for="social_facebook" class="form-label fw-semibold">
+                            <i class="fab fa-facebook text-primary me-1"></i> Facebook URL
+                        </label>
+                        <input type="url" class="form-control" id="social_facebook" name="social_facebook"
+                               value="{{ settings.social_facebook if settings.social_facebook != '#' else '' }}"
+                               placeholder="https://facebook.com/yourpage">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="social_tiktok" class="form-label fw-semibold">
+                            <i class="fab fa-tiktok me-1"></i> TikTok URL
+                        </label>
+                        <input type="url" class="form-control" id="social_tiktok" name="social_tiktok"
+                               value="{{ settings.social_tiktok if settings.social_tiktok != '#' else '' }}"
+                               placeholder="https://tiktok.com/@yourhandle">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="social_instagram" class="form-label fw-semibold">
+                            <i class="fab fa-instagram text-danger me-1"></i> Instagram URL
+                        </label>
+                        <input type="url" class="form-control" id="social_instagram" name="social_instagram"
+                               value="{{ settings.social_instagram if settings.social_instagram != '#' else '' }}"
+                               placeholder="https://instagram.com/yourprofile">
+                    </div>
+
+                    <h5 class="fw-bold mb-4 border-bottom pb-2 mt-4">
+                        <i class="fas fa-tag me-2 text-warning"></i>Promo Banner
+                    </h5>
+
+                    <div class="mb-3 d-flex align-items-center gap-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="promo_enabled" name="promo_enabled"
+                                   {% if settings.promo_enabled %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="promo_enabled">Show Promo Banner on Homepage</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="promo_title" class="form-label fw-semibold">Promo Heading</label>
+                        <input type="text" class="form-control" id="promo_title" name="promo_title"
+                               value="{{ settings.promo_title }}" placeholder="e.g. Get 20% Off Your First Order">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="promo_subtitle" class="form-label fw-semibold">Promo Subtitle</label>
+                        <textarea class="form-control" id="promo_subtitle" name="promo_subtitle" rows="2"
+                                  placeholder="e.g. Sign up today and receive an exclusive discount on your first purchase.">{{ settings.promo_subtitle }}</textarea>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-1"></i> Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mt-4 mt-lg-0">
+        <div class="card border-0 shadow-sm bg-primary text-white mb-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3"><i class="fas fa-info-circle me-2"></i>Quick Tips</h5>
+                <ul class="mb-0 ps-3">
+                    <li class="mb-2">The Hero Title is the main heading on your landing page.</li>
+                    <li class="mb-2">Use a high-quality image for the background to make your store look professional.</li>
+                    <li>Darker images work better as they provide better contrast for the white text.</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3">System Tasks</h5>
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="fw-semibold">Auto-Cleanup</div>
+                        <div class="small text-muted">Orders older than 7 days</div>
+                    </div>
+                    <span class="badge bg-success">Active</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
