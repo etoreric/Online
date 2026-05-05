@@ -127,6 +127,7 @@ class OrderItem(db.Model):
 class SiteSettings(db.Model):
     __tablename__ = 'site_settings'
     id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, unique=True)
     hero_title = db.Column(db.String(200), default='Discover Your Style')
     hero_subtitle = db.Column(db.Text, default='Explore our curated collection of premium fashion pieces designed for the modern individual.')
     hero_bg_image = db.Column(db.String(300))
@@ -140,10 +141,10 @@ class SiteSettings(db.Model):
     promo_subtitle = db.Column(db.Text, default='Sign up today and receive an exclusive discount on your first purchase.')
 
     @staticmethod
-    def get_settings():
-        settings = SiteSettings.query.first()
+    def get_settings(admin_id=None):
+        settings = SiteSettings.query.filter_by(admin_id=admin_id).first()
         if not settings:
-            settings = SiteSettings()
+            settings = SiteSettings(admin_id=admin_id)
             db.session.add(settings)
             db.session.commit()
         return settings

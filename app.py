@@ -91,7 +91,17 @@ def create_app():
 
     @app.context_processor
     def settings_context():
-        return {'settings': SiteSettings.get_settings()}
+        from flask import session
+        from flask_login import current_user
+        
+        # Determine which settings to load
+        admin_id = session.get('active_admin_id')
+        
+        # If user is admin and in their own dashboard, show their settings
+        if not admin_id and current_user.is_authenticated and current_user.is_admin:
+            admin_id = current_user.id
+            
+        return {'settings': SiteSettings.get_settings(admin_id)}
 
     @app.template_filter('from_json')
     def from_json_filter(value):

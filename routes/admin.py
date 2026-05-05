@@ -584,7 +584,7 @@ def customers():
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 @admin_required
 def settings():
-    site_settings = SiteSettings.get_settings()
+    site_settings = SiteSettings.get_settings(current_user.id)
     
     if request.method == 'POST':
         site_settings.hero_title = request.form.get('hero_title', '').strip()
@@ -867,14 +867,48 @@ def import_db():
             db_path = db_uri.replace('sqlite:///', '')
             if not os.path.isabs(db_path):
                 db_path = os.path.join(current_app.instance_path, db_path)
+            
+            # Ensure the directory exists
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+            
             try:
-                # Dispose of SQLAlchemy engine to release file locks on Windows
+                # 1. Close all connections and dispose engine
+                db.session.remove()
                 db.engine.dispose()
-                # Save the uploaded file
-                file.save(db_path)
-                flash('Database imported successfully. The entire application state has been updated.', 'success')
+                
+                # 2. Save the new database to a temporary file first
+                temp_path = db_path + ".new"
+                file.save(temp_path)
+                
+                # 3. On Windows, we might need to retry or use a specific strategy
+                # to replace the file because of potential locks.
+                # We'll try to rename the current one to a backup first.
+                backup_path = db_path + ".bak"
+                
+                # Close engine again just to be sure no background tasks re-opened it
+                db.engine.dispose()
+                
+                if os.path.exists(db_path):
+                    if os.path.exists(backup_path):
+                        os.remove(backup_path)
+                    os.rename(db_path, backup_path)
+                
+                os.rename(temp_path, db_path)
+                
+                # 4. Success!
+                flash('Database imported successfully. The application is now using the new data.', 'success')
+                
+                # Optionally remove the backup
+                if os.path.exists(backup_path):
+                    os.remove(backup_path)
+                    
             except Exception as e:
+                # Try to restore from backup if rename failed halfway
+                if 'backup_path' in locals() and os.path.exists(backup_path) and not os.path.exists(db_path):
+                    os.rename(backup_path, db_path)
+                
                 flash(f'Error importing database: {str(e)}', 'error')
+                current_app.logger.error(f"Database import failed: {e}")
         else:
             flash('Database import is only supported for SQLite.', 'error')
     else:
