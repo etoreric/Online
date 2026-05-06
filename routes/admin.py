@@ -844,7 +844,32 @@ def export_db():
         if not os.path.isabs(db_path):
             db_path = os.path.join(current_app.instance_path, db_path)
         if os.path.exists(db_path):
-            return send_file(db_path, as_attachment=True, download_name='styleshop_backup.db')
+            import sqlite3
+            import tempfile
+            
+            # Ensure any pending SQLAlchemy changes are committed/flushed
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+            temp_dir = tempfile.gettempdir()
+            backup_path = os.path.join(temp_dir, f"styleshop_backup_{uuid.uuid4().hex}.db")
+            
+            try:
+                source_conn = sqlite3.connect(db_path)
+                dest_conn = sqlite3.connect(backup_path)
+                with source_conn:
+                    source_conn.backup(dest_conn)
+                dest_conn.close()
+                source_conn.close()
+                
+                return send_file(backup_path, as_attachment=True, download_name='styleshop_backup.db')
+            except Exception as e:
+                current_app.logger.error(f"Backup failed: {e}")
+                flash('An error occurred while creating the backup.', 'error')
+                return redirect(url_for('admin.database_management'))
+            
     flash('Database export is only supported for SQLite.', 'error')
     return redirect(url_for('admin.database_management'))
 
