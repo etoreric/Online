@@ -880,32 +880,41 @@ def import_db():
                 temp_path = db_path + ".new"
                 file.save(temp_path)
                 
-                # 3. On Windows, we might need to retry or use a specific strategy
-                # to replace the file because of potential locks.
-                # We'll try to rename the current one to a backup first.
+                # 3. On Windows, os.rename can fail with WinError 32 if the file is locked.
+                # To bypass this, we can try to copy the file contents instead of renaming.
                 backup_path = db_path + ".bak"
                 
                 # Close engine again just to be sure no background tasks re-opened it
                 db.engine.dispose()
                 
+                import shutil
                 if os.path.exists(db_path):
-                    if os.path.exists(backup_path):
-                        os.remove(backup_path)
-                    os.rename(db_path, backup_path)
+                    try:
+                        shutil.copy2(db_path, backup_path)
+                    except Exception:
+                        pass
                 
-                os.rename(temp_path, db_path)
+                # Instead of rename, copy the new file over the old one, then remove temp
+                shutil.copy2(temp_path, db_path)
+                os.remove(temp_path)
                 
                 # 4. Success!
                 flash('Database imported successfully. The application is now using the new data.', 'success')
                 
                 # Optionally remove the backup
                 if os.path.exists(backup_path):
-                    os.remove(backup_path)
+                    try:
+                        os.remove(backup_path)
+                    except Exception:
+                        pass
                     
             except Exception as e:
-                # Try to restore from backup if rename failed halfway
-                if 'backup_path' in locals() and os.path.exists(backup_path) and not os.path.exists(db_path):
-                    os.rename(backup_path, db_path)
+                # Try to restore from backup if replacing failed halfway
+                if 'backup_path' in locals() and os.path.exists(backup_path) and os.path.exists(db_path):
+                    try:
+                        shutil.copy2(backup_path, db_path)
+                    except Exception:
+                        pass
                 
                 flash(f'Error importing database: {str(e)}', 'error')
                 current_app.logger.error(f"Database import failed: {e}")
